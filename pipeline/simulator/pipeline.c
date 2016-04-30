@@ -21,7 +21,8 @@ int dMemory[5000];
 int i=0,l,k,tmpSigned=0,sp,opcode=0,funct=0,rs=0,rd=0,cycle=0,Cshamt=0;
 unsigned int CimmediateUnsugned = 0 ;
 short Cimmediate = 0;
-
+#define _RS 0
+#define _RT 1
 //Temp
 int WB_TMP=0,MEM_TMP=0,EX_TMP=0,EX_TMP=0,ID_TMP=0;
 //Opcode
@@ -38,9 +39,9 @@ int ID_Cimmediate = 0, EX_Cimmediate = 0, MEM_Cimmediate = 0, WB_Cimmediate = 0;
 int ID_CimmediateUnsigned = 0, EX_CimmediateUnsigned = 0, MEM_CimmediateUnsigned = 0, WB_CimmediateUnsigned = 0;
 int ID_Caddress = 0, EX_Caddress = 0, MEM_Caddress = 0, WB_Caddress = 0;
 bool flush= FALSE,stall = FALSE, halt = FALSE;
-int fwd_EX_DM_rs_toID=0,fwd_EX_DM_rt_toID=0;
-int fwd_EX_DM_rs_toEX=0,fwd_EX_DM_rt_toEX=0;
-int fwd_DM_WB_rs_toEX=0,fwd_DM_WB_rt_toEX=0;
+bool fwd_EX_DM_rs_toID=false,fwd_EX_DM_rt_toID=false;
+bool fwd_EX_DM_rs_toEX=false,fwd_EX_DM_rt_toEX=false;
+bool fwd_DM_WB_rs_toEX=false,fwd_DM_WB_rt_toEX=false;
 int BUF_ID_RS=0,BUF_ID_RT=0;
 int branch=0,curpc;
 
@@ -72,7 +73,6 @@ int * WB(int input[5]){
     }
     return input;
 }
-
 
 int * MEM(int input[5]){
     MEM_Caddress = EX_Caddress;
@@ -268,4 +268,238 @@ int * MEM(int input[5]){
 
     }
     return input;
+}
+
+int * isFwd(int buff[2], int fwd_Input[5], int what){
+    if(what != 1){
+    if(EX_RS!=0){
+        if(((EX_RS==MEM_RD)&&((MEM_OPCODE==0x00)&&(MEM_FUNCT!=0x08)))||((EX_RS==MEM_RT)&&((MEM_OPCODE==0x08)||(MEM_OPCODE==0x09)||(MEM_OPCODE==0x0F)||(MEM_OPCODE==0x0C)||(MEM_OPCODE==0x0D)||(MEM_OPCODE==0x0E)||(MEM_OPCODE==0x0A)||(MEM_OPCODE==0x03)))){
+            
+            buff[_RS]=fwd_Input[3];
+            
+            fwd_EX_DM_rs_toEX=true;
+        }
+        else if(((EX_RS==WB_RD)&&((WB_OPCODE==0x00)&&(WB_FUNCT!=0x08)))||((EX_RS==WB_RT)&&((WB_OPCODE!=0x00)&&(WB_OPCODE!=0x2B)&&(WB_OPCODE!=0x29)&&(WB_OPCODE!=0x28)&&(WB_OPCODE!=0x04)&&(WB_OPCODE!=0x05)&&(WB_OPCODE!=0x07)&&(WB_OPCODE!=0x02)&&(WB_OPCODE!=0x3F)))){
+            
+            fwd_DM_WB_rs_toEX=true;
+            
+            buff[_RS]=reg[EX_RS];
+        }
+        
+        else buff[_RS]=reg[EX_RS];
+    }
+    else buff[_RS]=reg[EX_RS];
+    }
+    if(what != 0 ){
+    if(EX_RT!=0){
+        if(((EX_RT==MEM_RD)&&((MEM_OPCODE==0x00)&&(MEM_FUNCT!=0x08)))||((EX_RT==MEM_RT)&&((MEM_OPCODE==0x08)||(MEM_OPCODE==0x09)||(MEM_OPCODE==0x0F)||(MEM_OPCODE==0x0C)||(MEM_OPCODE==0x0D)||(MEM_OPCODE==0x0E)||(MEM_OPCODE==0x0A)||(MEM_OPCODE==0x03)))){
+            
+            buff[_RT]=fwd_Input[3];
+            
+            fwd_EX_DM_rt_toEX=true;
+        }
+        else if(((EX_RT==WB_RD)&&((WB_OPCODE==0x00)&&(WB_FUNCT!=0x08)))||((EX_RT==WB_RT)&&((WB_OPCODE!=0x00)&&(WB_OPCODE!=0x2B)&&(WB_OPCODE!=0x29)&&(WB_OPCODE!=0x28)&&(WB_OPCODE!=0x04)&&(WB_OPCODE!=0x05)&&(WB_OPCODE!=0x07)&&(WB_OPCODE!=0x02)&&(WB_OPCODE!=0x3F)))){
+            
+            fwd_DM_WB_rt_toEX=true;
+            
+            buff[_RT]=reg[EX_RT];
+        }
+        else buff[_RT]=reg[EX_RT];
+    }else{
+        buff[_RT] = reg[EX_RT];
+    }
+    }
+    
+    return buff;
+    
+}
+
+int * EX(int input[5]){
+    if(stall==true){
+        EX_Caddress = 0;
+        EX_CimmediateUnsigned = 0;
+        EX_Cimmediate = 0;
+        EX_Cshamt = 0;
+        EX_FUNCT = 0;
+        EX_OPCODE = 0;
+        pipeline[2] = 0;
+        EX_RS = 0;
+        EX_RT = 0;
+        EX_RD = 0;
+    }else if(stall == false){
+        int BUFF[2];// BUFF[0] = RS, BUFF[1] = RT
+        EX_Caddress = ID_Caddress;
+        EX_CimmediateUnsigned = ID_CimmediateUnsigned;
+        EX_Cimmediate = ID_Cimmediate;
+        EX_Cshamt = ID_Cshamt;
+        EX_FUNCT = ID_FUNCT;
+        EX_OPCODE = ID_OPCODE;
+        pipeline[2] = pipeline[1];
+        input[2] = input[1];
+        EX_RS = ID_RS;
+        EX_RT = ID_RT;
+        EX_RD = ID_RD;
+        
+        if(EX_OPCODE==0x00){
+            if((EX_FUNCT=0x20)||(EX_FUNCT==0x22)||(EX_FUNCT==0x24)||(EX_FUNCT==0x25)||(EX_FUNCT==0x26)||(EX_FUNCT==0x27)||(EX_FUNCT==0x28)||(EX_FUNCT==0x2A)){
+                BUFF = isFwd(BUFF, input, 3);
+            }
+            
+            if(EX_FUNCT==0x20){//add
+                int resultTmp=BUFF[_RS]+BUFF[_RT];
+                int resultSign=resultTmp>>31;
+                int rsTmp=BUFF[_RS]>>31;
+                int rtTmp=BUFF[_RT]>>31;
+                if((rsTmp==rtTmp)&&(resultSign!=rsTmp)){
+                    fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+                }
+                input[2]=resultTmp;
+            }else if(EX_FUNCT==0x22){//sub
+                int resultTmp=BUFF[_RS]-BUFF[_RT];
+                int resultSign=resultTmp>>31;
+                int rsTmp=BUFF[_RS]>>31;
+                int rtTmp=(0-BUFF[_RT])>>31;
+                if((rsTmp==rtTmp)&&(resultSign!=rsTmp)){
+                    fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+                }
+                input[2]=resultTmp;
+            }else if(EX_FUNCT==0x24){//and
+                input[2]=BUF[_RS]&BUFF[_RT];
+            }else if(EX_FUNCT==0x25){//or
+                input[2]=BUFF[_RS]|BUFF[_RT];
+            }else if(EX_FUNCT==0x26){//xor
+                input[2]=BUFF[_RS]^BUFF[_RT];
+            }else if(EX_FUNCT==0x27){//nor
+                input[2]=~(BUFF[_RS]|BUFF[_RT]);
+            }else if(EX_FUNCT==0x28){//nand
+                input[2]=~(BUFF[_RS]&BUFF[_RT]);
+            }else if(EX_FUNCT==0x2A){//slt
+                input[2]=(BUFF[_RS]<BUFF[_RT]);
+            }else if(EX_FUNCT==0x00){//sll
+                BUFF = isFwd(BUFF, input, _RT);
+                input[2] = BUFF[_RT]<<EX_Cshamt;
+            }else if(EX_FUNCT==0x02){//srl
+                BUFF = isFwd(BUFF, input, _RT);
+                input[2] = BUFF[_RT];
+                for(l = 0 ; l < EX_Cshamt; l++){
+                    input[2] = (input[2]>>1)&0x7FFFFFFF;
+                }
+            }else if(EX_FUNCT==0x03){//sra
+                BUFF = isFwd(BUFF, input, _RT);
+                input[2] = BUFF[_RT]>>EX_Cshamt;
+            }
+        }else if(EX_OPCODE==0x08){ //addi
+            BUFF = isFwd(BUFF, input, _RS);
+            int resultTmp = BUFF[_RS]+EX_Cimmediate;
+            int resultSign = resultTmp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(resultSign!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            input[2] = resultTmp;
+        }else if(EX_OPCODE == 0x09){ //addiu
+            BUFF = isFwd(BUFF, input, _RS);
+            int resultTmp = BUFF[_RS]+EX_Cimmediate;
+            input[2] = resultTmp;
+        }else if(EX_OPCODE == 0x23){ //lw
+            BUFF = isFwd(BUFF, input, _RS);
+            int temp = BUFF[_RS]+EX_Cimmediate;
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTemp != rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+        }else if(EX_OPCODE == 0x21){ //lh
+            BUFF = isFwd(BUFF, input, _RS);
+            int temp = BUFF[_RS]+EX_Cimmediate
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTemp!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+        }else if(EX_OPCODE==0x25){ //lhu
+            BUFF = isFwd(BUFF, input, _RS);
+            int temp = BUFF[_RS]+EX_Cimmediate
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTemp!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+        }else if(EX_OPCODE==0x20){ //lb
+            BUFF = isFwd(BUFF, input, _RS);
+            int temp = BUFF[_RS]+EX_Cimmediate
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTemp!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+        }else if(EX_OPCODE==0x24){ //lbu
+            BUFF = isFwd(BUFF, input, _RS);
+            int temp = BUFF[_RS]+EX_Cimmediate
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTemp!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+        }else if(EX_OPCODE==0x2B){ //SW
+            BUFF = isFwd(BUFF, input, 3);
+            int temp = BUFF[_RS]+EX_Cimmediate;
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTmep!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+            input[2] = BUFF[_RT];
+        }else if(EX_OPCODE==0x29){ //sh
+            BUFF = isFwd(BUFF, input, 3);
+            int temp = BUFF[_RS]+EX_Cimmediate;
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTmep!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+            input[2] = BUFF[_RT]&0x0000FFFF;
+        }else if(EX_OPCODE==0x28){ //sb
+            BUFF = isFwd(BUFF, input, 3);
+            int temp = BUFF[_RS]+EX_Cimmediate;
+            int tempTemp = temp>>31;
+            int rsTmp = BUFF[_RS]>>31;
+            int cTmp = EX_Cimmediate>>15;
+            if((rsTmp==cTmp)&&(tempTmep!=rsTmp)){
+                fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
+            }
+            EX_TMP = BUFF[_RS]+EX_Cimmediate;
+            input[2] = BUFF[_RT]&0x000000FF;
+        }else if(EX_OPCODE==0x0F){ //lui
+            input[2] = EX_Cimmediate<<16;
+        }else if(EX_OPCODE==0x0C){ //andi
+            BUFF = isFwd(BUFF, input, _RS);
+            input[2] = BUFF[_RS]&EX_CimmediateUnsigned;
+        }else if(EX_OPCODE==0x0D){ //ori
+            BUFF = isFwd(BUFF, input, _RS);
+            input[2] = BUFF[_RS] | EX_CimmediateUnsigned;
+        }else if(EX_OPCODE==0x0E){ //nori
+            BUFF = isFwd(BUFF, input, _RS);
+            input[2] = ~(BUFF[_RS]|EX_CimmediateUnsigned);
+        }else if(EX_OPCODE==0x0A){ //slti
+            BUFF = isFwd(BUFF, input, _RS);
+            input[2] = (BUFF[_RS]<EX_Cimmediate);
+        }
+            
+    }
 }
