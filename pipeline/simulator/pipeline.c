@@ -4,6 +4,9 @@
 #include<stdbool.h>
 FILE *writeSnapshot;
 FILE *writeError;
+void stallDetectRt();
+void stallDetectRtRs();
+void stallDetectRs();
 void printRegister();
 void printStage();
 void MEM();
@@ -244,9 +247,9 @@ void MEM(){
     if(MEM_OP==0x00)MEM_RT=-1;
     else if(MEM_OP==0x23){//lw
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[MEM_RS]>>31;
-        int cTemp=MEM_Cimmediate>>15;
+        //int TempTemp=Temp>>31;
+        //int rsTemp=Register[MEM_RS]>>31;
+        //int cTemp=MEM_Cimmediate>>15;
         if(Temp<0||(Temp+3<0)||(Temp>1023)||(Temp+3)>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -262,9 +265,9 @@ void MEM(){
     }
     else if(MEM_OP==0x21){//lh
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[MEM_RS]>>31;
-        int cTemp=MEM_Cimmediate>>15;
+        //int TempTemp=Temp>>31;
+        //int rsTemp=Register[MEM_RS]>>31;
+        //int cTemp=MEM_Cimmediate>>15;
         if(Temp<0||(Temp+1<0)||(Temp>1023)||(Temp+1)>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -281,9 +284,9 @@ void MEM(){
     }
     else if(MEM_OP==0x25){//lhu
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[MEM_RS]>>31;
-        int cTemp=MEM_Cimmediate>>15;
+        //int TempTemp=Temp>>31;
+        //int rsTemp=Register[MEM_RS]>>31;
+        //int cTemp=MEM_Cimmediate>>15;
         if(Temp<0||(Temp+1<0)||(Temp>1023)||(Temp+1)>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -300,9 +303,9 @@ void MEM(){
     }
     else if(MEM_OP==0x20){//lb
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[MEM_RS]>>31;
-        int cTemp=MEM_Cimmediate>>15;
+        //int TempTemp=Temp>>31;
+        //int rsTemp=Register[MEM_RS]>>31;
+        //int cTemp=MEM_Cimmediate>>15;
         if(Temp<0||Temp>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -317,9 +320,9 @@ void MEM(){
     }
     else if(MEM_OP==0x24){//lbu
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[MEM_RS]>>31;
-        int cTemp=MEM_Cimmediate>>15;
+        // int TempTemp=Temp>>31;
+        //int rsTemp=Register[MEM_RS]>>31;
+        //int cTemp=MEM_Cimmediate>>15;
         if(Temp<0||Temp>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -334,9 +337,9 @@ void MEM(){
     }
     else if(MEM_OP==0x2B){//sw
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[rs]>>31;
-        int cTemp=Cimmediate>>15;
+        //int TempTemp=Temp>>31;
+        //int rsTemp=Register[rs]>>31;
+        //int cTemp=Cimmediate>>15;
         if(Temp<0||(Temp+3<0)||(Temp>1023)||(Temp+3)>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -353,9 +356,9 @@ void MEM(){
     }
     else if(MEM_OP==0x29){//sh
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[rs]>>31;
-        int cTemp=Cimmediate>>15;
+        //int TempTemp=Temp>>31;
+        //int rsTemp=Register[rs]>>31;
+        //int cTemp=Cimmediate>>15;
         if(Temp<0||(Temp+1<0)||(Temp>1023)||(Temp+1)>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -373,9 +376,9 @@ void MEM(){
     }
     else if(MEM_OP==0x28){//sb
         int Temp=Register[MEM_RS]+MEM_Cimmediate;
-        int TempTemp=Temp>>31;
-        int rsTemp=Register[rs]>>31;
-        int cTemp=Cimmediate>>15;
+        //int TempTemp=Temp>>31;
+        //int rsTemp=Register[rs]>>31;
+        //int cTemp=Cimmediate>>15;
         if(Temp<0||Temp>1023){
             fprintf(writeError, "In cycle %d: Address Overflow\n", cycle);
             halt=1;
@@ -471,7 +474,7 @@ void EX(){
             }
             else if(EX_FT==0x21){//addu
                 int resultTemp=BUF_RS+BUF_RT;
-                int resultSign=resultTemp>>31;
+                //int resultSign=resultTemp>>31;
                 result[2]=resultTemp;
             }
             else if(EX_FT==0x22){//sub
@@ -532,9 +535,9 @@ void EX(){
         else if(EX_OP==0x09){//addiu
             isFwd(_RS);
             int resultTemp=BUF_RS+EX_Cimmediate;
-            int resultSign=resultTemp>>31;
-            int rsTemp=BUF_RS>>31;
-            int cTemp=EX_Cimmediate>>15;
+            /*int resultSign=resultTemp>>31;
+             int rsTemp=BUF_RS>>31;
+             int cTemp=EX_Cimmediate>>15;*/
             /*if((rsTemp==cTemp)&&(resultSign!=rsTemp)){
              fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
              }*/
@@ -1094,7 +1097,7 @@ void stallDetectRtRs(){
 }
 
 void stallDetectRs(){
-    if((ID_RS==EX_RD)&&(ID_RS!=0)||(ID_RS==EX_RT)&&(ID_RS!=0)){
+    if(((ID_RS==EX_RD)&&(ID_RS!=0)) || ((ID_RS==EX_RT)&&(ID_RS!=0))){
         
         if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
             stall = true;
@@ -1116,7 +1119,7 @@ void stallDetectRs(){
         }
         
     }
-    if((ID_RS==MEM_RD)&&(ID_RS!=0)||(ID_RS==MEM_RT)&&(ID_RS!=0)){
+    if(((ID_RS==MEM_RD)&&(ID_RS!=0))||((ID_RS==MEM_RT)&&(ID_RS!=0))){
         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                             (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                             (MEM_FT==0x02)||(MEM_FT==0x03))){//EX_RD
@@ -1139,7 +1142,7 @@ void stallDetectRs(){
 
 
 void stallDetectRt(){
-    if((ID_RT==EX_RD)&&(ID_RT!=0)||(ID_RT==EX_RT)&&(ID_RT!=0)){
+    if(((ID_RT==EX_RD)&&(ID_RT!=0))||((ID_RT==EX_RT)&&(ID_RT!=0))){
         
         if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
             stall = true;
@@ -1161,7 +1164,7 @@ void stallDetectRt(){
         }
         
     }
-    if((ID_RT==MEM_RD)&&(ID_RT!=0)||(ID_RT==MEM_RT)&&(ID_RT!=0)){
+    if(((ID_RT==MEM_RD)&&(ID_RT!=0))||((ID_RT==MEM_RT)&&(ID_RT!=0))){
         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                             (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                             (MEM_FT==0x02)||(MEM_FT==0x03))){//EX_RD
