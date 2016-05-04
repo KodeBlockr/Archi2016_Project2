@@ -148,6 +148,7 @@ void printStage(){
     fprintf(writeSnapshot, "IF: 0x%08X", pipeline[0]);
     if(flush==1)fprintf(writeSnapshot, " to_be_flushed");
     if(stall==1){
+        if(cycle==116||cycle==117||cycle==118)printf("Stall = %d, flush = %d\n in  cycle %d", stall, flush,cycle);
         fprintf(writeSnapshot, " to_be_stalled");
     }
     fprintf(writeSnapshot, "\n");
@@ -418,7 +419,7 @@ void WB(){
     WB_RD=MEM_RD;
     WB_RT=MEM_RT;
     if(WB_OP==0x00){
-        if(WB_FT!=0x08&&((pipeline[4]&0xFC1FFFFF)!=0)){//not jr
+        if(WB_FT!=0x08&&((pipeline[4]&0xFC1FFFFF)!=0)){ //not jr
             if(WB_RD==0)fprintf(writeError, "In cycle %d: Write $0 Error\n", cycle);
             else Register[WB_RD]=result[4];
         }
@@ -426,13 +427,13 @@ void WB(){
     else if(WB_OP==0x03){
         Register[31]=result[4];
     }
-    else if((WB_OP!=0x04)&&(WB_OP!=0x05)&&(WB_OP!=0x2B)&&(WB_OP!=0x29)&&(WB_OP!=0x28)&&(WB_OP!=0x02)&&(WB_OP!=0x3F)){
+    else if((WB_OP!=0x04)&&(WB_OP!=0x05)&&(WB_OP!=0x07)&&(WB_OP!=0x2B)&&(WB_OP!=0x29)&&(WB_OP!=0x28)&&(WB_OP!=0x02)&&(WB_OP!=0x3F)){
         if(WB_RT==0)fprintf(writeError, "In cycle %d: Write $0 Error\n", cycle);
         else Register[WB_RT]=result[4];
     }
 }
 void EX(){
-    if(stall==1){
+    if(stall==true){
         EX_Caddress=0;
         EX_CimmediateUnsigned=0;
         EX_Cimmediate=0;
@@ -444,7 +445,7 @@ void EX(){
         EX_RT=0;
         EX_RD=0;
     }
-    else if(stall!=1){
+    else if(stall==false){
         EX_Caddress=ID_Caddress;
         EX_CimmediateUnsigned=ID_CimmediateUnsigned;
         EX_Cimmediate=ID_Cimmediate;
@@ -506,8 +507,9 @@ void EX(){
                 result[2]=(BUF_RS<BUF_RT);
             }
             else if(EX_FT==0x00){//sll
-                result[2]=BUF_RT<<EX_Cshamt;
                 isFwd(_RT);
+                result[2]=BUF_RT<<EX_Cshamt;
+                
             }
             else if(EX_FT==0x02){//srl
                 isFwd(_RT);
@@ -515,6 +517,7 @@ void EX(){
                 for(l=0;l<EX_Cshamt;l++){
                     result[2]=(result[2]>>1)&0x7FFFFFFF;
                 }
+                
             }
             else if(EX_FT==0x03){//sra
                 isFwd(_RT);
@@ -682,13 +685,14 @@ void isFwd(int what){
 }
 
 void ID(){
-    if(stall!=1){
+    if(stall==false){
         pipeline[1]=pipeline[0];
     }
-    else stall=0;
-    if(flush==1){
+    else stall=false;
+    if(flush==true){
         pipeline[1]=0;
         flush=0;
+        stall = false;
     }
     OP=pipeline[1]>>26;
     FT=(pipeline[1]<<26)>>26;
@@ -717,13 +721,7 @@ void ID(){
                     ID_RS=rs;
                     ID_RT=rt;
                     ID_RD=rd;
-                    /*if(((EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))&&(((ID_RS==EX_RT)&&(ID_RS!=0))||((ID_RT==EX_RT)&&(ID_RT!=0)))){
-                     stall=1;
-                     }else if(MEM_OP==0x23){
-                     stall =true;
-                     }*/
                     stallDetectRtRs();
-                    //forBranch();
                     break;
                 case 0x00://sll
                 case 0x02://srl
@@ -733,19 +731,12 @@ void ID(){
                     ID_RT=rt;
                     ID_RD=rd;
                     ID_Cshamt=Cshamt;
-                    /*if(((EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))&&(ID_RT==EX_RT)&&(ID_RT!=0)){
-                     stall=1;
-                     }else if(FT==0x02&&EX_FT==0x02){
-                     stall = true;
-                     }*/
                     stallDetectRt();
-                    //forBranch();
                     break;
                 case 0x08://jr
                     ID_OP=OP;
                     ID_FT=FT;
                     ID_RS=rs;
-                    
                     if(((EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24)||(EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A))&&((ID_RS==EX_RT)&&(ID_RS!=0))){
                         stall=1;
                     }
@@ -758,6 +749,7 @@ void ID(){
                     else if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||(MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||(MEM_FT==0x02)||(MEM_FT==0x03))){
                         if(ID_RS!=0){
                             if(ID_RS==MEM_RD){
+                                
                                 fwd_EX_DM_rs_toID=1;
                                 BUF_ID_RS=result[3];
                             }
@@ -785,9 +777,13 @@ void ID(){
                     else {
                         BUF_ID_RS=Register[ID_RS];
                     }
-                    if(stall!=1)flush=1;
+                    if(stall==0){
+                        flush=1;
+                        stall = 0;
+                    }
                     break;
             }
+            break;
         case 0x23://lw
         case 0x21://lh
         case 0x25://lhu
@@ -797,11 +793,7 @@ void ID(){
             ID_RS=rs;
             ID_RT=rt;
             ID_Cimmediate=Cimmediate;
-            /*if(((EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))&&(ID_RS==EX_RT)&&(ID_RS!=0)){
-             stall=1;
-             }*/
-            stallDetectRtRs();
-            //forBranch();
+            stallDetectRs();
             break;
         case 0x2B://sw
         case 0x29://sh
@@ -810,13 +802,7 @@ void ID(){
             ID_RS=rs;
             ID_RT=rt;
             ID_Cimmediate=Cimmediate;
-            /*if(((EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))&&((ID_RS==EX_RT)&&(ID_RS!=0)||(ID_RT==EX_RT)&&(ID_RT!=0))){
-             stall=1;
-             }else if(OP == EX_OP){
-             stall = 1;
-             }*/
             stallDetectRtRs();
-            //forBranch();
             break;
         case 0x08://addi
         case 0x09://addiu
@@ -825,11 +811,7 @@ void ID(){
             ID_Cimmediate=Cimmediate;
             ID_RS=rs;
             ID_RT=rt;
-            /*if(((EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))&&(ID_RS==EX_RT)&&(ID_RS!=0)){
-             stall=1;
-             }*/
-            stallDetectRtRs();
-            //forBranch();
+            stallDetectRs();
             break;
         case 0x04://beq
             forBranch();
@@ -865,10 +847,7 @@ void ID(){
             ID_RS=rs;
             ID_RT=rt;
             ID_CimmediateUnsigned=CimmediateUnsigned;
-            /*if(((EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))&&(ID_RS==EX_RT)&&(ID_RS!=0)){
-             stall=1;
-             }*/
-            stallDetectRtRs();
+            stallDetectRs();
             break;
         case 0x0F://lui
             ID_OP=OP;
@@ -966,42 +945,96 @@ void forBranch(){
     }
 }
 void stallDetectRtRs(){
+    int n_Nop = pipeline[3]&0xFC1FFFFF;
+    int EXn_nop = pipeline[2]&0xFC1FFFFF;
+    int WBn_nop = pipeline[0]&0xFC1FFFFF;
+    if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){
+        return;
+    }
     if(((ID_RT==EX_RD)&&(ID_RT!=0))||((ID_RS==EX_RD)&&(ID_RS!=0))){ //EX_RD have at least one equal
-        if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
+        
+        
+        /* if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){ //EX_RT //--------------------------------------
+         if((ID_RS==EX_RT)&&(ID_RT==EX_RT)){
+         BUF_ID_RS=result[3];
+         BUF_ID_RT=result[3];
+         }else if(ID_RS==EX_RT&&ID_RS!=EX_RS){// ID_RT != EX_RD
+         
+         // detectRT MEM
+         if(ID_RT==MEM_RD&&n_Nop!=0){
+         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+         (MEM_FT==0x02)||(MEM_FT==0x03))){
+         stall = true;
+         }
+         }else if(ID_RT==MEM_RT&&n_Nop!=0){
+         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+         stall = true;
+         }
+         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+         stall = true;
+         }
+         }
+         
+         }else if(ID_RT==EX_RT&&ID_RT!=EX_RS){ // ID_RS != EX_RD
+         
+         // detectRS MEM
+         if(ID_RS==MEM_RD&&n_Nop!=0){
+         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+         (MEM_FT==0x02)||(MEM_FT==0x03))){
+         stall = true;
+         }
+         }else if(ID_RS==MEM_RT&&n_Nop!=0){
+         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+         stall = true;
+         }
+         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+         stall = true;
+         }
+         }
+         }
+         }*/
+        
+        
+        
+        
+        
+        if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){  // JR / L-style
             stall = true;
         }else if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||
-                                 (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){ //EX_RD
+                                 (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){ //EX_RD //_--------------------------------------------
             if((ID_RS==EX_RD)&&(ID_RT==EX_RD)){
-                fwd_EX_DM_rs_toID=1;
                 BUF_ID_RS=result[3];
-                fwd_EX_DM_rt_toID=1;
                 BUF_ID_RT=result[3];
-            }else if(ID_RS==EX_RD){// ID_RT != EX_RD
+            }else if(ID_RS==EX_RD&&ID_RS!=EX_RS){// ID_RT != EX_RD
+                
                 // detectRT MEM
-                if(ID_RT==MEM_RD){
+                if(ID_RT==MEM_RD && n_Nop!=0){
                     if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                                         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                                         (MEM_FT==0x02)||(MEM_FT==0x03))){
                         stall = true;
                     }
-                }else if(ID_RT==MEM_RT){
+                }else if(ID_RT==MEM_RT && n_Nop!=0){
                     if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
                         stall = true;
+                        
                     }
                     if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
                         stall = true;
                     }
                 }
-                
-            }else if(ID_RT==EX_RD){ // ID_RS != EX_RD
+            }else if(ID_RT==EX_RD&&ID_RT!=EX_RS){ // ID_RS != EX_RD
+                if(MEM_FT==0x22) printf("1213213132  %d", cycle );
                 // detectRS MEM
-                if(ID_RS==MEM_RD){
+                if((ID_RS==MEM_RD)&&n_Nop!=0){
                     if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                                         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                                         (MEM_FT==0x02)||(MEM_FT==0x03))){
                         stall = true;
                     }
-                }else if(ID_RS==MEM_RT){
+                }else if((ID_RS==MEM_RT)&&n_Nop!=0){
                     if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
                         stall = true;
                     }
@@ -1010,26 +1043,100 @@ void stallDetectRtRs(){
                     }
                 }
             }
+        }else if(EX_OP==0x2B||EX_OP==0x29||EX_OP==0x28){ // Store Type
+            if((ID_RT==MEM_RD)&&n_Nop!=0){
+                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
+                    stall = true;
+                }
+            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
+                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+                    stall = true;
+                }
+                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+                    stall = true;
+                }
+            }
+            if(ID_RT==MEM_RD&&n_Nop!=0){
+                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
+                    stall = true;
+                }
+            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
+                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+                    stall = true;
+                }
+                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+                    stall = true;
+                }
+            }
+            
         }
     }
     else if(((ID_RT==EX_RT)&&(ID_RT!=0))||((ID_RS==EX_RT)&&(ID_RS!=0))){ //EX_RT have at least one equal
+        
+        /*  if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||
+         (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){ //EX_RD //_--------------------------------------------
+         if((ID_RS==EX_RD)&&(ID_RT==EX_RD)){
+         //fwd_EX_DM_rs_toID=1;
+         BUF_ID_RS=result[3];
+         //fwd_EX_DM_rt_toID=1;
+         BUF_ID_RT=result[3];
+         }else if(ID_RS==EX_RD&&ID_RS!=EX_RS){// ID_RT != EX_RD
+         
+         // detectRT MEM
+         if(ID_RT==MEM_RD && n_Nop!=0){
+         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+         (MEM_FT==0x02)||(MEM_FT==0x03))){
+         stall = true;
+         }
+         }else if(ID_RT==MEM_RT && n_Nop!=0){
+         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+         stall = true;
+         
+         }
+         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+         stall = true;
+         }
+         }
+         }else if(ID_RT==EX_RD&&ID_RT!=EX_RS){ // ID_RS != EX_RD
+         if(MEM_FT==0x22) printf("1213213132  %d", cycle );
+         // detectRS MEM
+         if((ID_RS==MEM_RD)&&n_Nop!=0){
+         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+         (MEM_FT==0x02)||(MEM_FT==0x03))){
+         stall = true;
+         }
+         }else if((ID_RS==MEM_RT)&&n_Nop!=0){
+         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+         stall = true;
+         }
+         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+         stall = true;
+         }
+         }
+         }
+         }*/
         if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
             stall = true;
-        }else if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){ //EX_RT
+        }else if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){ //EX_RT //--------------------------------------
             if((ID_RS==EX_RT)&&(ID_RT==EX_RT)){
-                fwd_EX_DM_rs_toID=1;
                 BUF_ID_RS=result[3];
-                fwd_EX_DM_rt_toID=1;
                 BUF_ID_RT=result[3];
-            }else if(ID_RS==EX_RT){// ID_RT != EX_RD
+            }else if(ID_RS==EX_RT&&ID_RS!=EX_RS){// ID_RT != EX_RD
+                
                 // detectRT MEM
-                if(ID_RT==MEM_RD){
+                if(ID_RT==MEM_RD&&n_Nop!=0){
                     if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                                         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                                         (MEM_FT==0x02)||(MEM_FT==0x03))){
                         stall = true;
                     }
-                }else if(ID_RT==MEM_RT){
+                }else if(ID_RT==MEM_RT&&n_Nop!=0){
                     if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
                         stall = true;
                     }
@@ -1038,15 +1145,16 @@ void stallDetectRtRs(){
                     }
                 }
                 
-            }else if(ID_RT==EX_RT){ // ID_RS != EX_RD
+            }else if(ID_RT==EX_RT&&ID_RT!=EX_RS){ // ID_RS != EX_RD
+                
                 // detectRS MEM
-                if(ID_RS==MEM_RD){
+                if(ID_RS==MEM_RD&&n_Nop!=0){
                     if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                                         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                                         (MEM_FT==0x02)||(MEM_FT==0x03))){
                         stall = true;
                     }
-                }else if(ID_RS==MEM_RT){
+                }else if(ID_RS==MEM_RT&&n_Nop!=0){
                     if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
                         stall = true;
                     }
@@ -1055,9 +1163,87 @@ void stallDetectRtRs(){
                     }
                 }
             }
+        }else if(EX_OP==0x2B||EX_OP==0x29||EX_OP==0x28){ // Store Type
+            if((ID_RT==MEM_RD)&&n_Nop!=0){
+                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
+                    stall = true;
+                }
+            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
+                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+                    stall = true;
+                }
+                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+                    stall = true;
+                }
+            }
+            if(ID_RT==MEM_RD&&n_Nop!=0){
+                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
+                    stall = true;
+                }
+            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
+                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+                    stall = true;
+                }
+                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+                    stall = true;
+                }
+            }
+            
+        }
+        
+    }
+    else if(((ID_RT!=EX_RT)&&(ID_RT!=0))&&((ID_RS!=EX_RT)&&(ID_RS!=0))&&n_Nop!=0){// no one equal EX_RT
+        
+        if((MEM_OP==0x02||MEM_OP==0x03)&&(EXn_nop==0)&&(WBn_nop==0)){
+            stall = true;
+        }
+        if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
+                            (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
+                            (MEM_FT==0x02)||(MEM_FT==0x03))){
+            if((ID_RT == MEM_RD)&& (ID_RS==MEM_RD)){
+                stall = true;
+            }
+            if((ID_RT==MEM_RD)&&(ID_RS != MEM_RD)){
+                stall = true;
+            }
+            if((ID_RT != MEM_RD)&&(ID_RS == MEM_RD)){
+                stall = true;
+            }
+        }else if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+            if((ID_RT == MEM_RT)&& (ID_RS==MEM_RT)){
+                stall = true;
+            }
+            if((ID_RT==MEM_RT)&&(ID_RS != MEM_RT)){
+                stall = true;
+            }
+            if((ID_RT != MEM_RT)&&(ID_RS == MEM_RT)){
+                stall = true;
+            }
+        }else if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+            if((ID_RT == MEM_RT)&& (ID_RS==MEM_RT)){
+                stall = true;
+            }
+            if((ID_RT==MEM_RT)&&(ID_RS != MEM_RT)){
+                stall = true;
+            }
+            if((ID_RT != MEM_RT)&&(ID_RS == MEM_RT)){
+                stall = true;
+            }
+            
         }
     }
-    else if(((ID_RT!=EX_RT)&&(ID_RT!=0))&&((ID_RS!=EX_RT)&&(ID_RS!=0))){ // no one equal EX_RT
+    else if(((ID_RT!=EX_RD)&&(ID_RT!=0))&&((ID_RS!=EX_RD)&&(ID_RS!=0))&&n_Nop!=0){// no one equal EX_RD
+        if((MEM_OP==0x02||MEM_OP==0x03)&&(EXn_nop==0)&&(WBn_nop==0)){
+            stall = true;
+        }
+        if(MEM_OP==0x02||MEM_OP==0x03){
+            stall = true;
+        }
+        
         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                             (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                             (MEM_FT==0x02)||(MEM_FT==0x03))){
@@ -1099,41 +1285,45 @@ void stallDetectRtRs(){
 void stallDetectRs(){
     if(((ID_RS==EX_RD)&&(ID_RS!=0)) || ((ID_RS==EX_RT)&&(ID_RS!=0))){
         
+        
         if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
             stall = true;
         }
         if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||
                            (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){//EX_RD
             if(ID_RS==EX_RD){
-                fwd_EX_DM_rs_toID=1;
                 BUF_ID_RS=result[3];
-                //stall = true;
             }
         }
         if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){//EX_RT
+            
             if(ID_RS==EX_RT){
-                fwd_EX_DM_rs_toID=1;
                 BUF_ID_RS=result[3];
-                //stall = true;
+            }else if(ID_RS==EX_RS){
+                stall = true;
             }
         }
         
     }
-    if(((ID_RS==MEM_RD)&&(ID_RS!=0))||((ID_RS==MEM_RT)&&(ID_RS!=0))){
+    else if(((ID_RS==MEM_RD)&&(ID_RS!=0))||((ID_RS==MEM_RT)&&(ID_RS!=0))){
+        //if(EX_OP==0x08) printf("// %d", cycle );
         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                             (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                             (MEM_FT==0x02)||(MEM_FT==0x03))){//EX_RD
             if(ID_RS==MEM_RD){
+                //if(EX_OP==0x08) printf("/wsda/ %d", cycle );
                 stall = true;
             }
         }
         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){//EX_RT
             if(ID_RS==MEM_RT){
+                //if(EX_OP==0x08) printf("/adsadasd/ %d", cycle );
                 stall = true;
             }
         }
         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
             if(ID_RS==MEM_RT){
+                // if(EX_OP==0x08) printf("/asdasd/asdasds %d", cycle );
                 stall = true;
             }
         }
@@ -1142,29 +1332,45 @@ void stallDetectRs(){
 
 
 void stallDetectRt(){
+    int EXn_nop = pipeline[2]&0xFC1FFFFF;
+    
     if(((ID_RT==EX_RD)&&(ID_RT!=0))||((ID_RT==EX_RT)&&(ID_RT!=0))){
         
+        
+        
         if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
+            
             stall = true;
         }
-        if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||
-                           (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){//EX_RD
+        if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||(EX_FT==0x28)||(EX_FT==0x2A))){//EX_RD
             if(ID_RT==EX_RD){
-                fwd_EX_DM_rt_toID=1;
+                
                 BUF_ID_RT=result[3];
-                //stall = true;
             }
+        }
+        if((EX_OP==0x00)&&((EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){
+            if(ID_RT==EX_RT&&ID_RT==MEM_RT){
+                
+                stall = true;
+                
+            }else {
+                
+            }
+            
         }
         if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){//EX_RT
             if(ID_RT==EX_RT){
-                fwd_EX_DM_rt_toID=1;
+                
                 BUF_ID_RT=result[3];
-                //stall = true;
+                
+                
+            }else if(ID_RT==EX_RS){
+                stall = true;
             }
         }
         
     }
-    if(((ID_RT==MEM_RD)&&(ID_RT!=0))||((ID_RT==MEM_RT)&&(ID_RT!=0))){
+    else if(((ID_RT==MEM_RD)&&(ID_RT!=0))||((ID_RT==MEM_RT)&&(ID_RT!=0))){
         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
                             (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
                             (MEM_FT==0x02)||(MEM_FT==0x03))){//EX_RD
@@ -1176,6 +1382,9 @@ void stallDetectRt(){
             if(ID_RT==MEM_RT){
                 stall = true;
             }
+            if(MEM_OP==0x0F){
+                
+            }
         }
         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
             if(ID_RT==MEM_RT){
@@ -1184,4 +1393,3 @@ void stallDetectRt(){
         }
     }
 }
-
