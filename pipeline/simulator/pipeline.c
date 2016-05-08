@@ -89,7 +89,7 @@ int main()
     for(i=0;i<dCycle;i++){
         dMemory[i]=toBigEndian(dMemory[i]);
     }
-    
+
     for(i=pc;;){
         if(cycle==0)curpc=i;
         printRegister();
@@ -120,7 +120,7 @@ int main()
                 i=BUF_ID_RS;
             }
             curpc=i;
-            
+
         }
         else if(stall==1){
             pipeline[0]=iMemory[i];
@@ -130,7 +130,7 @@ int main()
         if(halt==1) break;
         if((IF_OP==0x3F)&&(ID_OP==0x3F)&&(EX_OP==0x3F)&&(MEM_OP==0x3F)&&(WB_OP==0x3F))break;
     }
-    
+
     fclose(writeSnapshot);
     fclose(writeError);
 }
@@ -148,7 +148,6 @@ void printStage(){
     fprintf(writeSnapshot, "IF: 0x%08X", pipeline[0]);
     if(flush==1)fprintf(writeSnapshot, " to_be_flushed");
     if(stall==1){
-        if(cycle==116||cycle==117||cycle==118)printf("Stall = %d, flush = %d\n in  cycle %d", stall, flush,cycle);
         fprintf(writeSnapshot, " to_be_stalled");
     }
     fprintf(writeSnapshot, "\n");
@@ -404,7 +403,7 @@ void MEM(){
         MEM_RT=31;
         MEM_RD=31;
     }
-    
+
 }
 void WB(){
     WB_Caddress=MEM_Caddress;
@@ -457,8 +456,8 @@ void EX(){
         EX_RS=ID_RS;
         EX_RT=ID_RT;
         EX_RD=ID_RD;
-        
-        
+
+
         if(EX_OP==0x00){
             if((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||(EX_FT==0x28)||(EX_FT==0x2A)){
                 isFwd(3);
@@ -509,7 +508,7 @@ void EX(){
             else if(EX_FT==0x00){//sll
                 isFwd(_RT);
                 result[2]=BUF_RT<<EX_Cshamt;
-                
+
             }
             else if(EX_FT==0x02){//srl
                 isFwd(_RT);
@@ -517,7 +516,7 @@ void EX(){
                 for(l=0;l<EX_Cshamt;l++){
                     result[2]=(result[2]>>1)&0x7FFFFFFF;
                 }
-                
+
             }
             else if(EX_FT==0x03){//sra
                 isFwd(_RT);
@@ -538,12 +537,6 @@ void EX(){
         else if(EX_OP==0x09){//addiu
             isFwd(_RS);
             int resultTemp=BUF_RS+EX_Cimmediate;
-            /*int resultSign=resultTemp>>31;
-             int rsTemp=BUF_RS>>31;
-             int cTemp=EX_Cimmediate>>15;*/
-            /*if((rsTemp==cTemp)&&(resultSign!=rsTemp)){
-             fprintf(writeError, "In cycle %d: Number Overflow\n", cycle);
-             }*/
             result[2]=resultTemp;
         }
         else if(EX_OP==0x23){//lw
@@ -661,10 +654,10 @@ void EX(){
 void isFwd(int what){
     if(what!=_RT){
         if(EX_RS != 0){
-            if(((EX_RS==MEM_RD)&&((MEM_OP==0x00)&&(MEM_FT!=0x08)))||((EX_RS==MEM_RT)&&((MEM_OP==0x08)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)||(MEM_OP==0x03)))){
+            if(((EX_RS==MEM_RD)&&((MEM_OP==0x00)&&(MEM_FT!=0x08)))||((EX_RS==MEM_RT)&&((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)||(MEM_OP==0x03)))){
                 BUF_RS=result[3];
                 fwd_EX_DM_rs_toEX=1;
-            }else if(((EX_RS==WB_RD)&&((WB_OP==0x00)&&(WB_FT!=0x08)))||((EX_RS==WB_RT)&&((WB_OP!=0x00)&&(WB_OP!=0x2B)&&(WB_OP!=0x29)&&(WB_OP!=0x28)&&(WB_OP!=0x04)&&(WB_OP!=0x05)&&(WB_OP!=0x02)&&(WB_OP!=0x3F)))){
+            }else if(((EX_RS==WB_RD)&&((WB_OP==0x00)&&(WB_FT!=0x08)))||((EX_RS==WB_RT)&&((WB_OP!=0x00)&&(WB_OP!=0x2B)&&(WB_OP!=0x29)&&(WB_OP!=0x28)&&(WB_OP!=0x04)&&(WB_OP!=0x05)&&(WB_OP!=0x07)&&(WB_OP!=0x02)&&(WB_OP!=0x3F)))){
                 fwd_DM_WB_rs_toEX=1;
                 BUF_RS=Register[EX_RS];
             }else BUF_RS=Register[EX_RS];
@@ -672,16 +665,16 @@ void isFwd(int what){
     }
     if(what!=_RS){
         if(EX_RT != 0){
-            if(((EX_RT==MEM_RD)&&((MEM_OP==0x00)&&(MEM_FT!=0x08)))||((EX_RT==MEM_RT)&&((MEM_OP==0x08)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)||(MEM_OP==0x03)))){
+            if(((EX_RT==MEM_RD)&&((MEM_OP==0x00)&&(MEM_FT!=0x08)))||((EX_RT==MEM_RT)&&((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)||(MEM_OP==0x03)))){
                 BUF_RT=result[3];
                 fwd_EX_DM_rt_toEX=1;
-            }else if(((EX_RT==WB_RD)&&((WB_OP==0x00)&&(WB_FT!=0x08)))||((EX_RT==WB_RT)&&((WB_OP!=0x00)&&(WB_OP!=0x2B)&&(WB_OP!=0x29)&&(WB_OP!=0x28)&&(WB_OP!=0x04)&&(WB_OP!=0x05)&&(WB_OP!=0x02)&&(WB_OP!=0x3F)))){
+            }else if(((EX_RT==WB_RD)&&((WB_OP==0x00)&&(WB_FT!=0x08)))||((EX_RT==WB_RT)&&((WB_OP!=0x00)&&(WB_OP!=0x2B)&&(WB_OP!=0x29)&&(WB_OP!=0x28)&&(WB_OP!=0x04)&&(WB_OP!=0x05)&&(WB_OP!=0x07)&&(WB_OP!=0x02)&&(WB_OP!=0x3F)))){
                 fwd_DM_WB_rt_toEX=1;
                 BUF_RT=Register[EX_RT];
             }else BUF_RT=Register[EX_RT];
         }else BUF_RT=Register[EX_RT];
     }
-    
+
 }
 
 void ID(){
@@ -749,7 +742,7 @@ void ID(){
                     else if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||(MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||(MEM_FT==0x02)||(MEM_FT==0x03))){
                         if(ID_RS!=0){
                             if(ID_RS==MEM_RD){
-                                
+
                                 fwd_EX_DM_rs_toID=1;
                                 BUF_ID_RS=result[3];
                             }
@@ -782,8 +775,8 @@ void ID(){
                         stall = 0;
                     }
                     break;
-            }
-            break;
+        }
+        break;
         case 0x23://lw
         case 0x21://lh
         case 0x25://lhu
@@ -871,7 +864,9 @@ void ID(){
         case 0x3F://halt
             ID_OP=OP;
             break;
-            
+        case 0x35:
+            stall = false;
+            break;
     }
 }
 void forBranch(){
@@ -883,7 +878,9 @@ void forBranch(){
         stall=1;
     }
     else if(((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A))&&(((ID_RS==EX_RT)&&(ID_RS!=0))||((ID_RT==EX_RT)&&(ID_RT!=0)))){
-        stall=1;
+        if(ID_OP==0x07&&EX_OP==0x0F&&ID_RT==EX_RT){
+            stall = false;
+        }else stall=true;
     }
     else if(((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24))&&(((ID_RS==MEM_RT)&&(ID_RS!=0))||((ID_RT==MEM_RT)&&(ID_RT!=0)))){
         stall=1;
@@ -945,451 +942,567 @@ void forBranch(){
     }
 }
 void stallDetectRtRs(){
-    int n_Nop = pipeline[3]&0xFC1FFFFF;
-    int EXn_nop = pipeline[2]&0xFC1FFFFF;
-    int WBn_nop = pipeline[0]&0xFC1FFFFF;
-    if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){
-        return;
-    }
-    if(((ID_RT==EX_RD)&&(ID_RT!=0))||((ID_RS==EX_RD)&&(ID_RS!=0))){ //EX_RD have at least one equal
-        
-        
-        /* if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){ //EX_RT //--------------------------------------
-         if((ID_RS==EX_RT)&&(ID_RT==EX_RT)){
-         BUF_ID_RS=result[3];
-         BUF_ID_RT=result[3];
-         }else if(ID_RS==EX_RT&&ID_RS!=EX_RS){// ID_RT != EX_RD
-         
-         // detectRT MEM
-         if(ID_RT==MEM_RD&&n_Nop!=0){
-         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-         (MEM_FT==0x02)||(MEM_FT==0x03))){
-         stall = true;
-         }
-         }else if(ID_RT==MEM_RT&&n_Nop!=0){
-         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-         stall = true;
-         }
-         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-         stall = true;
-         }
-         }
-         
-         }else if(ID_RT==EX_RT&&ID_RT!=EX_RS){ // ID_RS != EX_RD
-         
-         // detectRS MEM
-         if(ID_RS==MEM_RD&&n_Nop!=0){
-         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-         (MEM_FT==0x02)||(MEM_FT==0x03))){
-         stall = true;
-         }
-         }else if(ID_RS==MEM_RT&&n_Nop!=0){
-         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-         stall = true;
-         }
-         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-         stall = true;
-         }
-         }
-         }
-         }*/
-        
-        
-        
-        
-        
-        if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){  // JR / L-style
-            stall = true;
-        }else if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||
-                                 (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){ //EX_RD //_--------------------------------------------
-            if((ID_RS==EX_RD)&&(ID_RT==EX_RD)){
-                BUF_ID_RS=result[3];
-                BUF_ID_RT=result[3];
-            }else if(ID_RS==EX_RD&&ID_RS!=EX_RS){// ID_RT != EX_RD
-                
-                // detectRT MEM
-                if(ID_RT==MEM_RD && n_Nop!=0){
-                    if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                        (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                        (MEM_FT==0x02)||(MEM_FT==0x03))){
-                        stall = true;
-                    }
-                }else if(ID_RT==MEM_RT && n_Nop!=0){
-                    if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-                        stall = true;
-                        
-                    }
-                    if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+    int MEM_nop = pipeline[3];
+    int EX_nop = pipeline[2];
+    int WB_nop = pipeline[0];
+    /*
+    Check if ID_RT and ID_RS equal to EX_RD
+    if RT=RS=EX_RD
+        1,if EX is load type must stall
+        2,if EX is not load type can fwd
+    else if RT==EX_RD but RS!=EX_RD
+        1,if EX is load type must stall
+        2,if RS!=MEM_RD fwd
+        3,if RS==MEM_RD and MEM is not branch type stall!
+    */
+    //check not branch not jr
+    if(((EX_OP==0x00)&&(EX_FT==0x08))||EX_OP==0x04||EX_OP==0x05||EX_OP==0x07||EX_OP==0x02||EX_OP==0x03){ // jr, beq, bne, bgtz
+
+    if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT != MEM_RD){
+
+                    }else if(ID_RT==MEM_RD){
+
                         stall = true;
                     }
                 }
-            }else if(ID_RT==EX_RD&&ID_RT!=EX_RS){ // ID_RS != EX_RD
-                if(MEM_FT==0x22) printf("1213213132  %d", cycle );
-                // detectRS MEM
-                if((ID_RS==MEM_RD)&&n_Nop!=0){
-                    if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                        (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                        (MEM_FT==0x02)||(MEM_FT==0x03))){
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RT==MEM_RT){
+
+                    stall = true;
+                }else if(ID_RT!=MEM_RT){
+                    //do nothing
+                }
+            }
+
+        if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RS != MEM_RD){
+
+                    }else if(ID_RS==MEM_RD && ID_RS != 0){
+
                         stall = true;
                     }
-                }else if((ID_RS==MEM_RT)&&n_Nop!=0){
-                    if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RS==MEM_RT && ID_RS != 0){
+
+                    stall = true;
+                }else if(ID_RS!=MEM_RT){
+                    //do nothing
+                }
+            }
+
+
+    }else if(EX_OP==0x00){ //EX_RD type check if equal EX_RD
+        if(ID_RT==EX_RD && ID_RS==EX_RD &&ID_RT!=0&&ID_RS!=0 ){
+        //FWD
+        }else if(ID_RT==EX_RD && ID_RS != EX_RD ){
+
+        /*
+        RS!=MEM_RD fwd
+        RS==MEM_RD and MEM_RD is not branch -> stall
+        */
+        if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RS != MEM_RD && ID_RS!=0){
+
+                    }else if(ID_RS==MEM_RD&&ID_RS!=0){
+                            stall = true;
+
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RS==MEM_RT && ID_RS != 0){
+                if(MEM_OP==0x2B||MEM_OP==0x29||MEM_OP==0x28){
+
+                }else stall = true;
+                }else if(ID_RS!=MEM_RT && ID_RS != 0){
+                    //do nothing
+                }
+            }
+        }else if(ID_RS==EX_RD && ID_RT != EX_RD){
+
+        if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT != MEM_RD && ID_RT != 0){
+
+                    }else if(ID_RT==MEM_RD && ID_RT!= 0){
                         stall = true;
                     }
-                    if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RT==MEM_RT && ID_RT !=0){
+                    stall = true;
+                }else if(ID_RT!=MEM_RT && ID_RT != 0){
+                    //do nothing
+                }
+            }
+        }else if(ID_RS!=EX_RD && ID_RT!=EX_RD){
+
+
+
+                if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT == MEM_RD && ID_RS != MEM_RD && ID_RT != 0){
+                         stall = true;
+                    }else if(ID_RS == MEM_RD && ID_RT != MEM_RD && ID_RS != 0){
                         stall = true;
+                    }else if(ID_RS ==MEM_RD && ID_RT== MEM_RD && MEM_RD != 0){
+                        stall = true;
+                    }else{
+
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else{
+                    if(ID_RT == MEM_RT && ID_RS != MEM_RT && ID_RT != 0){
+                         stall = true;
+                    }else if(ID_RS == MEM_RT && ID_RT != MEM_RT && ID_RS != 0){
+                        stall = true;
+                    }else if(ID_RS ==MEM_RT && ID_RT== MEM_RT && MEM_RT != 0){
+                        stall = true;
+                    }else{
+
                     }
                 }
             }
-        }else if(EX_OP==0x2B||EX_OP==0x29||EX_OP==0x28){ // Store Type
-            if((ID_RT==MEM_RD)&&n_Nop!=0){
-                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
-                    stall = true;
+        }
+    }else{ // check EX_RT
+        //if(cycle==7) printf("ID_RS = %d, ID_RT = %d, EX_RD = %d,EX_RT = %d,EX_RS = %d , MEM_RS = %d ,MEM_RT = %d", ID_RS, ID_RT, EX_RD,EX_RT,EX_RS, MEM_RS,MEM_RT);
+        //if(cycle==7) printf("ID_RT = %d, ID_RS = %d, EX_RT = %d, MEM_RT = %d", ID_RT, ID_RS, EX_RT, MEM_RT);
+        if(ID_RT==EX_RT && ID_RS==EX_RT && ID_RT!=0&&ID_RS!=0){
+            if(EX_OP==0x23||EX_OP==0x21||EX_OP==0x25||EX_OP==0x20||EX_OP==0x24){ // load type
+                stall = true;
+            }else{
+                // FWD
+            }
+        }else if(ID_RT==EX_RT && ID_RS != EX_RT &&ID_RT !=0){
+
+            if(EX_OP==0x23||EX_OP==0x21||EX_OP==0x25||EX_OP==0x20||EX_OP==0x24){ // load type
+                stall = true;
+            }
+            if(EX_OP==0x2B||EX_OP==0x29||EX_OP==0x28){
+                if(EX_RT==MEM_RT){
+                    stall =  true;
                 }
-            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
-                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-                    stall = true;
-                }
-                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
+                if(EX_RT==MEM_RD){
                     stall = true;
                 }
             }
-            if(ID_RT==MEM_RD&&n_Nop!=0){
-                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
-                    stall = true;
+             if(MEM_OP==0x00){ //MEM R-type
+            if(MEM_nop==0){
+
+        }else if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RS != MEM_RD && ID_RS!=0){
+
+                    }else if(ID_RS==MEM_RD && ID_RS!=0){
+                        stall = true;
+                    }
                 }
-            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
-                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+            }else{ // check RT
+                        if(MEM_nop==0){
+
+        }else if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RS==MEM_RT && ID_RS != 0){
                     stall = true;
-                }
-                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-                    stall = true;
+                }else if(ID_RS!=MEM_RT&& ID_RS != 0){
+                    //do nothing
                 }
             }
-            
+        }else if(ID_RS==EX_RT && ID_RT!=EX_RT && ID_RS != 0){
+
+            if(EX_OP==0x23||EX_OP==0x21||EX_OP==0x25||EX_OP==0x20||EX_OP==0x24){ // load type
+                stall = true;
+            }
+            if(EX_OP==0x2B||EX_OP==0x29||EX_OP==0x28){
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){
+
+                }else if(EX_RT==MEM_RT){
+                    stall =  true;
+                }
+            }
+
+            if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT != MEM_RD &&ID_RT != 0){
+
+                    }else if(ID_RT==MEM_RD && ID_RT != 0){
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RT==MEM_RT && ID_RT != 0){
+                    stall = true;
+                }else if(ID_RT!=MEM_RT && ID_RT != 0){
+                    //do nothing
+                }
+            }
+        }else if(ID_RS != EX_RT && ID_RT != EX_RT ){
+                    //if(cycle==6) printf("ID_RT = %d, ID_RS = %d, EX_RT = %d, MEM_RT = %d", ID_RT, ID_RS, EX_RT, MEM_RT);
+            if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT == MEM_RD && ID_RS != MEM_RD && ID_RT != 0){
+                         stall = true;
+                    }else if(ID_RS == MEM_RD && ID_RT != MEM_RD && ID_RS != 0){
+                        stall = true;
+                    }else if(ID_RS ==MEM_RD && ID_RT== MEM_RD && MEM_RD != 0){
+                        stall = true;
+                    }else{
+
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else{
+                    if(ID_RT == MEM_RT && ID_RS != MEM_RT && ID_RT != 0){
+                         stall = true;
+                    }else if(ID_RS == MEM_RT && ID_RT != MEM_RT && ID_RS != 0){
+                        stall = true;
+                    }else if(ID_RS ==MEM_RT && ID_RT== MEM_RT && MEM_RT != 0){
+                        stall = true;
+                    }else{
+
+                    }
+                }
+            }
         }
     }
-    else if(((ID_RT==EX_RT)&&(ID_RT!=0))||((ID_RS==EX_RT)&&(ID_RS!=0))){ //EX_RT have at least one equal
-        
-        /*  if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||
-         (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){ //EX_RD //_--------------------------------------------
-         if((ID_RS==EX_RD)&&(ID_RT==EX_RD)){
-         //fwd_EX_DM_rs_toID=1;
-         BUF_ID_RS=result[3];
-         //fwd_EX_DM_rt_toID=1;
-         BUF_ID_RT=result[3];
-         }else if(ID_RS==EX_RD&&ID_RS!=EX_RS){// ID_RT != EX_RD
-         
-         // detectRT MEM
-         if(ID_RT==MEM_RD && n_Nop!=0){
-         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-         (MEM_FT==0x02)||(MEM_FT==0x03))){
-         stall = true;
-         }
-         }else if(ID_RT==MEM_RT && n_Nop!=0){
-         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-         stall = true;
-         
-         }
-         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-         stall = true;
-         }
-         }
-         }else if(ID_RT==EX_RD&&ID_RT!=EX_RS){ // ID_RS != EX_RD
-         if(MEM_FT==0x22) printf("1213213132  %d", cycle );
-         // detectRS MEM
-         if((ID_RS==MEM_RD)&&n_Nop!=0){
-         if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-         (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-         (MEM_FT==0x02)||(MEM_FT==0x03))){
-         stall = true;
-         }
-         }else if((ID_RS==MEM_RT)&&n_Nop!=0){
-         if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-         stall = true;
-         }
-         if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-         stall = true;
-         }
-         }
-         }
-         }*/
-        if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
-            stall = true;
-        }else if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){ //EX_RT //--------------------------------------
-            if((ID_RS==EX_RT)&&(ID_RT==EX_RT)){
-                BUF_ID_RS=result[3];
-                BUF_ID_RT=result[3];
-            }else if(ID_RS==EX_RT&&ID_RS!=EX_RS){// ID_RT != EX_RD
-                
-                // detectRT MEM
-                if(ID_RT==MEM_RD&&n_Nop!=0){
-                    if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                        (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                        (MEM_FT==0x02)||(MEM_FT==0x03))){
+    if(EX_nop==0){
+        if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT == MEM_RD && ID_RS != MEM_RD && ID_RT != 0){
+                         stall = true;
+                    }else if(ID_RS == MEM_RD && ID_RT != MEM_RD && ID_RS != 0){
                         stall = true;
-                    }
-                }else if(ID_RT==MEM_RT&&n_Nop!=0){
-                    if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+                    }else if(ID_RS ==MEM_RD && ID_RT== MEM_RD && MEM_RD != 0){
                         stall = true;
-                    }
-                    if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-                        stall = true;
+                    }else{
+
                     }
                 }
-                
-            }else if(ID_RT==EX_RT&&ID_RT!=EX_RS){ // ID_RS != EX_RD
-                
-                // detectRS MEM
-                if(ID_RS==MEM_RD&&n_Nop!=0){
-                    if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                        (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                        (MEM_FT==0x02)||(MEM_FT==0x03))){
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else{
+                    if(ID_RT == MEM_RT && ID_RS != MEM_RT && ID_RT != 0){
+                         stall = true;
+                    }else if(ID_RS == MEM_RT && ID_RT != MEM_RT && ID_RS != 0){
                         stall = true;
-                    }
-                }else if(ID_RS==MEM_RT&&n_Nop!=0){
-                    if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
+                    }else if(ID_RS ==MEM_RT && ID_RT== MEM_RT && MEM_RT != 0){
                         stall = true;
-                    }
-                    if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-                        stall = true;
+                    }else{
+
                     }
                 }
             }
-        }else if(EX_OP==0x2B||EX_OP==0x29||EX_OP==0x28){ // Store Type
-            if((ID_RT==MEM_RD)&&n_Nop!=0){
-                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
-                    stall = true;
-                }
-            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
-                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-                    stall = true;
-                }
-                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-                    stall = true;
-                }
-            }
-            if(ID_RT==MEM_RD&&n_Nop!=0){
-                if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                                    (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                                    (MEM_FT==0x02)||(MEM_FT==0x03))){
-                    stall = true;
-                }
-            }else if((ID_RT==MEM_RT)&&n_Nop!=0){
-                if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-                    stall = true;
-                }
-                if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-                    stall = true;
-                }
-            }
-            
-        }
-        
     }
-    else if(((ID_RT!=EX_RT)&&(ID_RT!=0))&&((ID_RS!=EX_RT)&&(ID_RS!=0))&&n_Nop!=0){// no one equal EX_RT
-        
-        if((MEM_OP==0x02||MEM_OP==0x03)&&(EXn_nop==0)&&(WBn_nop==0)){
-            stall = true;
-        }
-        if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                            (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                            (MEM_FT==0x02)||(MEM_FT==0x03))){
-            if((ID_RT == MEM_RD)&& (ID_RS==MEM_RD)){
-                stall = true;
-            }
-            if((ID_RT==MEM_RD)&&(ID_RS != MEM_RD)){
-                stall = true;
-            }
-            if((ID_RT != MEM_RD)&&(ID_RS == MEM_RD)){
-                stall = true;
-            }
-        }else if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-            if((ID_RT == MEM_RT)&& (ID_RS==MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT==MEM_RT)&&(ID_RS != MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT != MEM_RT)&&(ID_RS == MEM_RT)){
-                stall = true;
-            }
-        }else if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-            if((ID_RT == MEM_RT)&& (ID_RS==MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT==MEM_RT)&&(ID_RS != MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT != MEM_RT)&&(ID_RS == MEM_RT)){
-                stall = true;
-            }
-            
-        }
-    }
-    else if(((ID_RT!=EX_RD)&&(ID_RT!=0))&&((ID_RS!=EX_RD)&&(ID_RS!=0))&&n_Nop!=0){// no one equal EX_RD
-        if((MEM_OP==0x02||MEM_OP==0x03)&&(EXn_nop==0)&&(WBn_nop==0)){
-            stall = true;
-        }
-        if(MEM_OP==0x02||MEM_OP==0x03){
-            stall = true;
-        }
-        
-        if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                            (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                            (MEM_FT==0x02)||(MEM_FT==0x03))){
-            if((ID_RT == MEM_RD)&& (ID_RS==MEM_RD)){
-                stall = true;
-            }
-            if((ID_RT==MEM_RD)&&(ID_RS != MEM_RD)){
-                stall = true;
-            }
-            if((ID_RT != MEM_RD)&&(ID_RS == MEM_RD)){
-                stall = true;
-            }
-        }else if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){
-            if((ID_RT == MEM_RT)&& (ID_RS==MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT==MEM_RT)&&(ID_RS != MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT != MEM_RT)&&(ID_RS == MEM_RT)){
-                stall = true;
-            }
-        }else if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-            if((ID_RT == MEM_RT)&& (ID_RS==MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT==MEM_RT)&&(ID_RS != MEM_RT)){
-                stall = true;
-            }
-            if((ID_RT != MEM_RT)&&(ID_RS == MEM_RT)){
-                stall = true;
-            }
-            
-        }
-    }
-    
 }
 
 void stallDetectRs(){
-    if(((ID_RS==EX_RD)&&(ID_RS!=0)) || ((ID_RS==EX_RT)&&(ID_RS!=0))){
-        
-        
-        if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
-            stall = true;
-        }
-        if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||
-                           (EX_FT==0x28)||(EX_FT==0x2A)||(EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){//EX_RD
-            if(ID_RS==EX_RD){
-                BUF_ID_RS=result[3];
+    int MEM_nop = pipeline[3];
+    int EX_nop = pipeline[2];
+    int WB_nop = pipeline[0];
+    if(((EX_OP==0x00)&&(EX_FT==0x08))||EX_OP==0x04||EX_OP==0x05||EX_OP==0x07||EX_OP==0x02||EX_OP==0x03){
+        if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RS != MEM_RD){
+
+                    }else if(ID_RS==MEM_RD && ID_RS != 0){
+
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RS==MEM_RT){
+
+                    stall = true;
+                }else if(ID_RS!=MEM_RT && ID_RS != 0){
+                    //do nothing
+                }
+            }
+    }else if(EX_OP==0x00){
+        if(ID_RS==EX_RD && ID_RS != 0){
+
+        }else if(ID_RS!=EX_RD && ID_RS != 0){
+            if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RS != MEM_RD){
+
+                    }else if(ID_RS==MEM_RD){
+
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RS==MEM_RT){
+
+                    stall = true;
+                }else if(ID_RS!=MEM_RT){
+                    //do nothing
+                }
             }
         }
-        if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){//EX_RT
-            
-            if(ID_RS==EX_RT){
-                BUF_ID_RS=result[3];
-            }else if(ID_RS==EX_RS){
-                stall = true;
+
+    }else{
+
+        if(ID_RS==EX_RT && ID_RS!=0){
+
+            if(EX_OP==0x23||EX_OP==0x21||EX_OP==0x25||EX_OP==0x20||EX_OP==0x24){ // load type
+                 stall = true;
+            }
+            else if(EX_OP==0x2B||EX_OP==0x29||EX_OP==0x28){
+                if(EX_RT==MEM_RT){
+                    stall = true;
+                }else stall = false;
+            }else{
+                // FWD
+            }
+        }else if(ID_RS!=EX_RT && ID_RS != 0){
+
+            if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RS != MEM_RD){
+
+                    }else if(ID_RS==MEM_RD){
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RS==MEM_RT){
+                if(MEM_OP==0x2B||MEM_OP==0x29||MEM_OP==0x28){
+
+                }else stall = true;
+                }else if(ID_RS!=MEM_RT){
+                    //do nothing
+                }
             }
         }
-        
+
     }
-    else if(((ID_RS==MEM_RD)&&(ID_RS!=0))||((ID_RS==MEM_RT)&&(ID_RS!=0))){
-        //if(EX_OP==0x08) printf("// %d", cycle );
-        if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                            (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                            (MEM_FT==0x02)||(MEM_FT==0x03))){//EX_RD
-            if(ID_RS==MEM_RD){
-                //if(EX_OP==0x08) printf("/wsda/ %d", cycle );
-                stall = true;
+    if(EX_nop==0){
+
+
+        if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RS != MEM_RD){
+
+                    }else if(ID_RS==MEM_RD && ID_RS!=0){
+
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RS==MEM_RT && ID_RS != 0){
+
+                if(MEM_OP==0x2B||MEM_OP==0x29||MEM_OP==0x28||MEM_OP==0x23||MEM_OP==0x21||MEM_OP==0x25||MEM_OP==0x20||MEM_OP==0x24||MEM_OP==0x0A){
+                }else stall = true;
+                if(MEM_OP==0x29) stall = false;
+                }else if(ID_RS!=MEM_RT){
+                    //do nothing
+                }
             }
-        }
-        if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){//EX_RT
-            if(ID_RS==MEM_RT){
-                //if(EX_OP==0x08) printf("/adsadasd/ %d", cycle );
-                stall = true;
-            }
-        }
-        if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-            if(ID_RS==MEM_RT){
-                // if(EX_OP==0x08) printf("/asdasd/asdasds %d", cycle );
-                stall = true;
-            }
-        }
     }
 }
 
 
 void stallDetectRt(){
     int EXn_nop = pipeline[2]&0xFC1FFFFF;
-    
-    if(((ID_RT==EX_RD)&&(ID_RT!=0))||((ID_RT==EX_RT)&&(ID_RT!=0))){
-        
-        
-        
-        if((((EX_OP==0x00)&&(EX_FT==0x08))||(EX_OP==0x23)||(EX_OP==0x21)||(EX_OP==0x25)||(EX_OP==0x20)||(EX_OP==0x24))){
-            
-            stall = true;
-        }
-        if((EX_OP==0x00)&&((EX_FT==0x20)||(EX_FT==0x21)||(EX_FT==0x22)||(EX_FT==0x24)||(EX_FT==0x25)||(EX_FT==0x26)||(EX_FT==0x27)||(EX_FT==0x28)||(EX_FT==0x2A))){//EX_RD
-            if(ID_RT==EX_RD){
-                
-                BUF_ID_RT=result[3];
+    int MEM_nop = pipeline[3];
+    if(pipeline[1]==0){
+
+     }else if(((EX_OP==0x00)&&(EX_FT==0x08))||EX_OP==0x04||EX_OP==0x05||EX_OP==0x07||EX_OP==0x02||EX_OP==0x03){
+             if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT != MEM_RD){
+
+                    }else if(ID_RT==MEM_RD && ID_RT != 0){
+
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RT==MEM_RT && ID_RT != 0){
+
+                    stall = true;
+                }else if(ID_RT!=MEM_RT){
+                    //do nothing
+                }
+            }
+
+    }else if(EX_OP==0x00){
+        if(ID_RT==EX_RD && ID_RT != 0){
+
+        }else if(ID_RT!=EX_RD && ID_RT!= 0){
+            if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT != MEM_RD){
+
+                    }else if(ID_RT==MEM_RD){
+
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RT==MEM_RT){
+                if(MEM_OP==0x2B||MEM_OP==0x29||MEM_OP==0x28){
+
+                }else stall = true;
+                }else if(ID_RT!=MEM_RT){
+                    //do nothing
+                }
             }
         }
-        if((EX_OP==0x00)&&((EX_FT==0x00)||(EX_FT==0x02)||(EX_FT==0x03))){
-            if(ID_RT==EX_RT&&ID_RT==MEM_RT){
-                
-                stall = true;
-                
-            }else {
-                
+
+    }else{
+        if(ID_RT==EX_RT && ID_RT!=0){
+            if(EX_OP==0x23||EX_OP==0x21||EX_OP==0x25||EX_OP==0x20||EX_OP==0x24){ // load type
+                 stall = true;
+            }else{
+                // FWD
             }
-            
-        }
-        if((EX_OP==0x08)||(EX_OP==0x09)||(EX_OP==0x0F)||(EX_OP==0x0C)||(EX_OP==0x0D)||(EX_OP==0x0E)||(EX_OP==0x0A)){//EX_RT
-            if(ID_RT==EX_RT){
-                
-                BUF_ID_RT=result[3];
-                
-                
-            }else if(ID_RT==EX_RS){
-                stall = true;
+        }else if(ID_RT!=EX_RT && ID_RT!=0){
+            if(MEM_nop==0){
+             stall = false;
+            }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT != MEM_RD){
+
+                    }else if(ID_RT==MEM_RD){
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RT==MEM_RT){
+                if(MEM_OP==0x2B||MEM_OP==0x29||MEM_OP==0x28){
+
+                }else stall = true;
+                }else if(ID_RT!=MEM_RT){
+                    //do nothing
+                }
             }
         }
-        
+
     }
-    else if(((ID_RT==MEM_RD)&&(ID_RT!=0))||((ID_RT==MEM_RT)&&(ID_RT!=0))){
-        if((MEM_OP==0x00)&&((MEM_FT==0x20)||(MEM_FT==0x21)||(MEM_FT==0x22)||(MEM_FT==0x24)||(MEM_FT==0x25)||
-                            (MEM_FT==0x26)||(MEM_FT==0x27)||(MEM_FT==0x28)||(MEM_FT==0x2A)||(MEM_FT==0x00)||
-                            (MEM_FT==0x02)||(MEM_FT==0x03))){//EX_RD
-            if(ID_RT==MEM_RD){
-                stall = true;
+    if(EXn_nop==0){
+
+        if(MEM_nop==0){
+
+        }else if(MEM_OP==0x00){ //MEM R-type
+                if(MEM_FT==0x08){
+
+                }else{
+                    if(ID_RT != MEM_RD){
+
+                    }else if(ID_RT==MEM_RD && ID_RT!=0){
+
+                        stall = true;
+                    }
+                }
+            }else{ // check RT
+
+                if(MEM_OP==0x04||MEM_OP==0x05||MEM_OP==0x07){ //branch
+                    //do nothing
+                }else if(ID_RT==MEM_RT && ID_RT != 0){
+                if(MEM_OP==0x2B||MEM_OP==0x29||MEM_OP==0x28||MEM_OP==0x23||MEM_OP==0x21||MEM_OP==0x25||MEM_OP==0x20||MEM_OP==0x24||MEM_OP==0x0A){
+
+                }else stall = true;
+                }else if(ID_RT!=MEM_RT){
+                    //do nothing
+                }
             }
-        }
-        if((MEM_OP==0x08)||(MEM_OP==0x09)||(MEM_OP==0x0F)||(MEM_OP==0x0C)||(MEM_OP==0x0D)||(MEM_OP==0x0E)||(MEM_OP==0x0A)){//EX_RT
-            if(ID_RT==MEM_RT){
-                stall = true;
-            }
-            if(MEM_OP==0x0F){
-                
-            }
-        }
-        if((MEM_OP==0x23)||(MEM_OP==0x21)||(MEM_OP==0x25)||(MEM_OP==0x20)||(MEM_OP==0x24)){
-            if(ID_RT==MEM_RT){
-                stall = true;
-            }
-        }
     }
+
 }
